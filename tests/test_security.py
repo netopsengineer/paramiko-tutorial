@@ -82,3 +82,28 @@ def test_scp_is_reused_and_disconnect_never_reconnects():
         client.disconnect()
         ssh.return_value.connect.assert_called_once()
         scp.return_value.close.assert_called_once()
+
+
+def test_make_run_uses_script_entrypoint_without_executing_it(tmp_path):
+    """Inspect the launch recipe without importing the application or opening SSH."""
+    import subprocess
+
+    activation = tmp_path / ".venv/bin/activate"
+    activation.parent.mkdir(parents=True)
+    activation.touch()
+    makefile = Path(__file__).parents[1] / "Makefile"
+    result = subprocess.run(
+        [
+            "make",
+            "--dry-run",
+            "-f",
+            str(makefile),
+            "run",
+            "LOCAL_PYTHON=offline-python",
+        ],
+        cwd=tmp_path,
+        text=True,
+        capture_output=True,
+        check=True,
+    )
+    assert result.stdout.strip() == "offline-python main.py"

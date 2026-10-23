@@ -36,8 +36,8 @@ run: env
 install:
 	if [ ! -d "./.venv" ]; then python3 -m venv $(VIRTUAL_ENVIRONMENT); fi
 	. .venv/bin/activate
-	$(LOCAL_PYTHON) -m pip install --upgrade pip setuptools wheel
-	$(LOCAL_PYTHON) -m pip install -r requirements.txt
+	uv pip install --python $(LOCAL_PYTHON) --upgrade "pip>=26.2.2" setuptools wheel
+	uv pip install --python $(LOCAL_PYTHON) --require-hashes -r requirements.txt
 
 
 .PHONY: deploy
@@ -59,9 +59,9 @@ test: env
 .PHONY: update
 update:
 	if [ ! -d "./.venv" ]; then python3 -m venv $(VIRTUAL_ENVIRONMENT); fi
-	$(LOCAL_PYTHON) -m pip install --upgrade pip setuptools wheel
+	uv pip install --python $(LOCAL_PYTHON) --upgrade "pip>=26.2.2" setuptools wheel
 	poetry update
-	poetry export -f requirements.txt --output requirements.txt --without-hashes
+	poetry export -f requirements.txt --output requirements.txt
 
 
 .PHONY: format
@@ -83,7 +83,6 @@ lint: env
 clean:
 	find . -name '*.pyc' -delete
 	find . -name '__pycache__' -delete
-	find . -name 'poetry.lock' -delete
 	find . -name '*.log' -delete
 	find . -name '.coverage' -delete
 	find . -wholename 'logs/*.json' -delete

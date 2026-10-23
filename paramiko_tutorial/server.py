@@ -1,8 +1,8 @@
 """Client to handle connections and actions executed against a remote host."""
-from os import system
+
 from typing import List
 
-from paramiko import AutoAddPolicy, RSAKey, SSHClient
+from paramiko import RejectPolicy, RSAKey, SSHClient
 from paramiko.auth_handler import AuthenticationException, SSHException
 from scp import SCPClient, SCPException
 
@@ -26,15 +26,17 @@ class RemoteClient:
         self.ssh_key_filepath = ssh_key_filepath
         self.remote_path = remote_path
         self.client = None
-        self._upload_ssh_key()
+        self._scp = None
 
     @property
     def connection(self):
         """Open SSH connection to remote host."""
+        if self.client is not None:
+            return self.client
+        client = SSHClient()
         try:
-            client = SSHClient()
             client.load_system_host_keys()
-            client.set_missing_host_key_policy(AutoAddPolicy())
+            client.set_missing_host_key_policy(RejectPolicy())
             client.connect(
                 self.host,
                 username=self.user,
@@ -42,18 +44,24 @@ class RemoteClient:
                 key_filename=self.ssh_key_filepath,
                 timeout=5000,
             )
+            self.client = client
             return client
         except AuthenticationException as e:
             LOGGER.error(
                 f"AuthenticationException occurred; did you remember to generate an SSH key? {e}"
             )
+            client.close()
+            raise
         except Exception as e:
+            client.close()
             LOGGER.error(f"Unexpected error occurred while connecting to host: {e}")
+            raise
 
     @property
     def scp(self) -> SCPClient:
-        conn = self.connection
-        return SCPClient(conn.get_transport())
+        if self._scp is None:
+            self._scp = SCPClient(self.connection.get_transport())
+        return self._scp
 
     def _get_ssh_key(self):
         """Fetch locally stored SSH key."""
@@ -66,23 +74,14 @@ class RemoteClient:
         except Exception as e:
             LOGGER.error(f"Unexpected error while getting SSH key: {e}")
 
-    def _upload_ssh_key(self):
-        try:
-            system(
-                f"ssh-copy-id -i {self.ssh_key_filepath}.pub {self.user}@{self.host}>/dev/null 2>&1"
-            )
-            LOGGER.info(f"{self.ssh_key_filepath} uploaded to {self.host}")
-        except FileNotFoundError as e:
-            LOGGER.error(f"FileNotFoundError while uploading SSH key: {e}")
-        except Exception as e:
-            LOGGER.error(f"Unexpected error while uploading SSH key: {e}")
-
     def disconnect(self):
-        """Close SSH & SCP connection."""
-        if self.connection:
+        """Close existing connections without opening any new connection."""
+        if self._scp is not None:
+            self._scp.close()
+            self._scp = None
+        if self.client is not None:
             self.client.close()
-        if self.scp:
-            self.scp.close()
+            self.client = None
 
     def bulk_upload(self, filepaths: List[str]):
         """
@@ -119,7 +118,5 @@ class RemoteClient:
             stdout.channel.recv_exit_status()
             response = stdout.readlines()
             for line in response:
-                LOGGER.info(
-                    f"INPUT: {cmd}\n \
-                    OUTPUT: {line}"
-                )
+                LOGGER.info(f"INPUT: {cmd}\n \
+                    OUTPUT: {line}")

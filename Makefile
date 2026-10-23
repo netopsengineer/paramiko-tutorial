@@ -29,7 +29,7 @@ all help:
 
 .PHONY: run
 run: env
-	if [[ "./main.py" ]]; then $(LOCAL_PYTHON) -m main.py; else echo "main.py not found."; fi
+	$(LOCAL_PYTHON) main.py
 
 
 .PHONY: install

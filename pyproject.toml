@@ -1,5 +1,6 @@
 [tool.poetry]
-name = "Paramiko SSH & SCP Tutorial"
+name = "paramiko-tutorial"
+package-mode = false
 version = "0.1.0"
 description = "Automate tasks on a remote host with Python libraries Paramiko & SCP. Write scripts to SSH into hosts, execute tasks, transfer files, etc."
 authors = ["Todd Birchard <toddbirchard@gmail.com>"]
@@ -18,13 +19,14 @@ keywords = [
 ]
 
 [tool.poetry.dependencies]
-python = "^3.9"
-paramiko = "*"
-scp = "*"
+python = ">=3.12,<4.0"
+paramiko = ">=5.1,<6"
+cryptography = ">=46.0.5,<51"
+scp = ">=0.15,<0.16"
 loguru = "*"
 python-dotenv = "*"
 
-[tool.poetry.dev-dependencies]
+[tool.poetry.group.dev.dependencies]
 pytest = "*"
 coverage = "*"
 mypy = "*"
@@ -34,8 +36,8 @@ flake8 = "*"
 pylint = "*"
 
 [build-system]
-requires = ["poetry>=1.1.13"]
-build-backend = "poetry.masonry.api"
+requires = ["poetry-core>=2.2,<3"]
+build-backend = "poetry.core.masonry.api"
 
 [tool.poetry.scripts]
 run = "main:run"
@@ -45,3 +47,7 @@ issues = "https://github.com/hackersandslackers/paramiko-tutorial/issues"
 
 [tool.pylint.'MESSAGES CONTROL']
 disable="C0103,C0301,W0703,W0621"
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]
